@@ -11,9 +11,9 @@
 
 #include <json.hpp>
 
-#include "DDL/JsonDDLRootWriter.h"
+#include "DDL/JsonDDLRootWriter.hpp"
 
-namespace Assets
+namespace assets
 {
 	namespace //Ddl
 	{
@@ -182,34 +182,3 @@ namespace Assets
 		}
 	}
 }
-
-namespace assets
-{
-	utils::hook::detour db_add_x_asset_hook;
-
-	game::XAssetHeader db_add_x_asset_stub(game::XAssetType type, game::XAssetHeader header)
-	{
-		switch (type)
-		{
-		case game::ASSET_TYPE_DDL:
-			//Assets::Ddl::dump(header.ddlRoot);
-			Assets::Ddl::DumpDDLRoot(header.ddlRoot);
-			break;
-		default:
-			break;
-		}
-
-		return db_add_x_asset_hook.invoke<game::XAssetHeader>(type, header);
-	}
-
-	class component final : public generic_component
-	{
-	public:
-		void post_unpack() override
-		{
-			db_add_x_asset_hook.create(0x14141F4C0_g, db_add_x_asset_stub);
-		}
-	};
-}
-
-REGISTER_COMPONENT(assets::component)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Json/JsonCommon.h"
+#include "JsonCommon.hpp"
 #include <json.hpp>
 
 class JsonDDLMemberLimits

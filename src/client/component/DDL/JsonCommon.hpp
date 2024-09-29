@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonExtension.h"
+#include "JsonExtension.hpp"
 #include <json.hpp>
 
 class JsonVec2

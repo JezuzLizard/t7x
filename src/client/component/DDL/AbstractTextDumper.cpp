@@ -1,6 +1,6 @@
 #include "std_include.hpp"
 
-#include "AbstractTextDumper.h"
+#include "AbstractTextDumper.hpp"
 
 #include <cassert>
 

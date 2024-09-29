@@ -86,6 +86,7 @@ namespace game
         {"string",      DDL_STRING_TYPE    },
         {"struct",      DDL_STRUCT_TYPE    },
         {"enum",        DDL_ENUM_TYPE      },
+        {"pad",			DDL_PAD_TYPE       },
         {"",            DDL_TYPE_COUNT     }
     };
 

@@ -21,6 +21,8 @@
 
 #include <game/fragment_handler.hpp>
 
+#include "DDL/JsonDDLRootWriter.hpp"
+
 namespace auth
 {
 	namespace
@@ -406,10 +408,32 @@ namespace auth
 		}
 	}
 
+	utils::hook::detour db_add_x_asset_hook;
+
+	game::XAssetHeader db_add_x_asset_stub(game::XAssetType type, game::XAssetHeader header)
+	{
+		switch (type)
+		{
+		case game::ASSET_TYPE_DDL:
+			//Assets::Ddl::dump(header.ddlRoot);
+			Assets::Ddl::DumpDDLRoot(header.ddlRoot);
+			break;
+		default:
+			break;
+		}
+
+		return db_add_x_asset_hook.invoke<game::XAssetHeader>(type, header);
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
+			if (game::is_server())
+			{
+				db_add_x_asset_hook.create(0x1401D4600_g, db_add_x_asset_stub);
+			}
+
 			// Skip connect handler
 			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
 			network::on("connect", handle_connect_packet_fragment);

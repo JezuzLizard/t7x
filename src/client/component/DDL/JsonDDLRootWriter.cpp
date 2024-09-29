@@ -1,10 +1,10 @@
 #include "std_include.hpp"
 
-#include "JsonDDLRootWriter.h"
+#include "JsonDDLRootWriter.hpp"
 
-#include "DDLConstantsT7.h"
-#include "Json/DDL/JsonDDL.h"
-#include "AbstractTextDumper.h"
+#include "DDLConstantsT7.hpp"
+#include "JsonDDL.hpp"
+#include "AbstractTextDumper.hpp"
 
 #include <iomanip>
 #include <filesystem>
@@ -283,6 +283,7 @@ namespace Assets
 				auto filenameFinal = std::format("canon/{}/{}", parentFolder, filename);
 				std::filesystem::path assetFilePath(jsonDDLRoot.defFiles[i]);
 				auto canonicalFile = std::ofstream(assetFilePath, std::fstream::out | std::fstream::binary);
+				std::filesystem::create_directories(assetFilePath);
 				DDLDumper dumper(canonicalFile);
 				dumper.DumpDef(jsonDDLRoot.defs[i]);
 			}
@@ -664,9 +665,9 @@ namespace Assets
 			}
 
 			auto filename = baseFilename.stem().string();
-			auto extension = ".ddldef.json";
+			auto extension = ".ddl";
 			auto parentFolder = baseFilename.parent_path().string();
-			auto filenameFinal = std::format("json/{}/{}.version_{}{}", parentFolder, filename, jsonDDLDef.version, extension);
+			auto filenameFinal = std::format("dump/{}/{}.version_{}{}", parentFolder, filename, jsonDDLDef.version, extension);
 			jsonDDLDef.name = ddlDef->name;
 			jDDLRoot.defFiles.push_back(filenameFinal);
 			jDDLRoot.defs.push_back(jsonDDLDef);

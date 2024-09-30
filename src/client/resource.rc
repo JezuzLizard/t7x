@@ -96,13 +96,6 @@ ID_ICON               ICON   "resources/icon.ico"
 IMAGE_SPLASH          RCDATA "resources/splash.jpg"
 IMAGE_LOGO            RCDATA "resources/logo.jpg"
 
-DW_MOTD               RCDATA "resources/dw/experiments_tu32.gz"
-DW_CARDS              RCDATA "resources/dw/featured_cards-english_tu32.gz"
-DW_PLAYLISTS          RCDATA "resources/dw/playlists_tu32.gz"
-DW_FASTFILE           RCDATA "resources/dw/core_ffotd_tu32_593.ff"
-DW_KEYS               RCDATA "resources/dw/keys.txt"
-DW_QOSCONFIG          RCDATA "resources/dw/qosconfig4.csv"
-
 #ifdef _DEBUG
 TLS_DLL               RCDATA "../../build/bin/x64/Debug/tlsdll.dll"
 #else

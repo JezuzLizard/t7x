@@ -281,7 +281,7 @@ project "common"
 	dependencies.imports()
 
 project "client"
-	kind "WindowedApp"
+	kind "ConsoleApp"
 	language "C++"
 
 	targetname "t7x"

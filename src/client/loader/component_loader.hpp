@@ -7,7 +7,7 @@ namespace component_loader
 
 	void register_component(registration_functor functor, component_type type);
 
-	bool activate(bool server);
+	bool activate();
 	bool post_load();
 	void post_unpack();
 	void pre_destroy();

@@ -54,15 +54,15 @@ namespace component_loader
 		get_registration_functors().emplace_back(std::move(functor), type);
 	}
 
-	bool activate(bool server)
+	bool activate()
 	{
-		static auto res = [server]
+		static auto res = []
 		{
 			try
 			{
 				for (auto& functor : get_registration_functors())
 				{
-					if (functor.second == component_type::any || server == (functor.second == component_type::server))
+					if (functor.second == component_type::any)
 					{
 						activate_component(functor.first());
 					}

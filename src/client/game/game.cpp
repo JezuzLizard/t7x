@@ -58,14 +58,7 @@ namespace game
 
 	void show_error(const std::string& text, const std::string& title)
 	{
-		if(is_headless())
-		{
-			puts(text.data());
-		}
-		else
-		{
-			MessageBoxA(nullptr, text.data(), title.data(), MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
-		}
+		puts(text.data());
 	}
 
 	std::filesystem::path get_appdata_path()

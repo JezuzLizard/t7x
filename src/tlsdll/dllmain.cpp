@@ -1,7 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include "Windows.h"
 
-#define TLS_PAYLOAD_SIZE 0x2000
+#define TLS_PAYLOAD_SIZE 0x22A000
 thread_local char tls_data[TLS_PAYLOAD_SIZE];
 
 __declspec(dllexport) void* get_tls_data()

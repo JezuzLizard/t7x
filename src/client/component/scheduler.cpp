@@ -86,28 +86,6 @@ namespace scheduler
 		volatile bool kill = false;
 		std::thread async_thread;
 		task_pipeline pipelines[pipeline::count];
-
-		utils::hook::detour r_end_frame_hook;
-		utils::hook::detour main_frame_hook;
-
-
-		void r_end_frame_stub()
-		{
-			execute(pipeline::renderer);
-			r_end_frame_hook.invoke<void>();
-		}
-
-		void g_clear_vehicle_inputs_stub()
-		{
-			game::G_ClearVehicleInputs();
-			execute(pipeline::server);
-		}
-
-		void main_frame_stub()
-		{
-			main_frame_hook.invoke<void>();
-			execute(pipeline::main);
-		}
 	}
 
 	void execute(const pipeline type)
@@ -165,16 +143,6 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			if (!game::is_server())
-			{
-				// some func called before R_EndFrame, maybe SND_EndFrame?
-				r_end_frame_hook.create(0x142272B00_g, r_end_frame_stub);
-			}
-
-			// Com_Frame_Try_Block_Function
-			main_frame_hook.create(game::select(0x1420F8E00, 0x1405020E0), main_frame_stub);
-
-			utils::hook::call(game::select(0x14225522E, 0x140538427), g_clear_vehicle_inputs_stub);
 		}
 
 		void pre_destroy() override

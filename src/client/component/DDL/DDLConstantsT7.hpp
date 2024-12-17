@@ -154,7 +154,7 @@ namespace game
         // Canonical limits in T7 linker
         static constexpr auto MAX_STRUCTS = 48;
         static constexpr auto MAX_ENUMS = 32;
-        static constexpr auto MAX_MEMBERS = 1023;
+        static constexpr auto MAX_MEMBERS = 1024;
 
         class Member
         {

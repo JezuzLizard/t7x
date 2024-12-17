@@ -51,15 +51,9 @@ public:
 
 NLOHMANN_DEFINE_TYPE_EXTENSION_ORDERED(JsonDDLMemberDef, name, type, limits, arraySize, permission, enum_, maxCharacters);
 
-struct DDLHashEntry
-{
-    int hash;
-    int index;
-};
-
 struct DDLHashTable
 {
-    std::vector<DDLHashEntry> table;
+    std::vector<game::DDLHash> list;
     int max;
 };
 
@@ -67,10 +61,11 @@ class JsonDDLStructDef
 {
 public:
     std::string name;
-    std::optional<int> size;
+    int structBitSize;
+    int calculatedStructBitSize;
     std::vector<JsonDDLMemberDef> members;
-    std::vector<game::DDLHashTable> sortedLowerHashTable;
-    std::vector<game::DDLHashTable> sortedUpperHashTable;
+	DDLHashTable sortedLowerHashTable;
+	DDLHashTable sortedUpperHashTable;
     mutable size_t refCount = 0;
 };
 
@@ -81,7 +76,7 @@ class JsonDDLEnumDef
 public:
     std::string name;
     std::vector<std::string> members;
-    std::vector<game::DDLHashTable> sortedHashTable;
+	DDLHashTable sortedHashTable;
     mutable size_t refCount = 0;
 };
 
@@ -99,8 +94,10 @@ public:
     int reserveSize;
     int userFlagsSize;
     bool paddingUsed;
-    std::optional<int> bitSize;
-    std::optional<int> byteSize;
+    int defBitSize;
+    int calculatedDefBitSize;
+    int defByteSize;
+    int calculatedDefByteSize;
     std::vector<JsonDDLEnumDef> enums;
     std::vector<JsonDDLStructDef> structs;
     std::vector<std::string> includeFiles;

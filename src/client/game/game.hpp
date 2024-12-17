@@ -25,7 +25,7 @@ namespace game
 		if (!val) return 0;
 
 		const auto base = get_base();
-		return base + (val - 0x140000000);
+		return base + val;
 	}
 
 	inline size_t derelocate(const size_t val)
@@ -33,7 +33,7 @@ namespace game
 		if (!val) return 0;
 
 		const auto base = get_base();
-		return (val - base) + 0x140000000;
+		return (val - base);
 	}
 
 	inline size_t derelocate(const void* val)

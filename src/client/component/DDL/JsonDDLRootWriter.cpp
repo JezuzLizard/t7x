@@ -15,6 +15,7 @@ namespace Assets
 {
 	namespace Ddl
 	{
+#undef DDL_DEBUG
 #define DDLAssert(expression, ...) \
 	DDLAssertInternal(expression, #expression, __VA_ARGS__)
 
@@ -146,7 +147,7 @@ namespace Assets
 			{
 #ifdef DDL_DEBUG
 				Indent();
-				m_stream << "// BitOffset: " << _struct.size.value() << "\n";
+				m_stream << "// BitOffset: " << _struct.calculatedStructBitSize << "\n";
 #endif
 				if (!_struct.refCount)
 				{
@@ -200,7 +201,7 @@ namespace Assets
 				m_stream << "// ====================\n";
 
 #ifdef DDL_DEBUG
-				m_stream << "// Size (Bits): " << jDDLDef.size.value() << "\n";
+				m_stream << "// Size (Bits): " << jDDLDef.calculatedDefBitSize << "\n";
 #endif
 
 				m_stream << "version " << jDDLDef.version << "\n{\n";
@@ -257,8 +258,7 @@ namespace Assets
 					{
 						DDLAssert(member.refCount, false);
 
-						DDLAssert(member.link.m_type_category != game::DDL_STRUCT_TYPE
-							|| member.link.m_bit_size / member.arraySize.value_or(1) == jsonDDLRoot.defs[i].structs[member.link.m_external_index].size);
+						//DDLAssert(member.link.m_type_category != game::DDL_STRUCT_TYPE || (member.link.m_bit_size / member.arraySize.value_or(1)) == jsonDDLRoot.defs[i].structs[member.link.m_external_index].size.value());
 
 						// Only required for actual arrays
 						if (member.arraySize.value_or(1) == 1)
@@ -280,10 +280,9 @@ namespace Assets
 				std::filesystem::path baseFilename = jsonDDLRoot.defFiles[i];
 				auto filename = baseFilename.stem().string();
 				auto parentFolder = baseFilename.parent_path().string();
-				auto filenameFinal = std::format("canon/{}/{}", parentFolder, filename);
 				std::filesystem::path assetFilePath(jsonDDLRoot.defFiles[i]);
 				auto canonicalFile = std::ofstream(assetFilePath, std::fstream::out | std::fstream::binary);
-				std::filesystem::create_directories(assetFilePath);
+				std::filesystem::create_directories(parentFolder);
 				DDLDumper dumper(canonicalFile);
 				dumper.DumpDef(jsonDDLRoot.defs[i]);
 			}
@@ -294,10 +293,13 @@ namespace Assets
 				for (const auto& struc : def.structs)
 				{
 					if (struc.refCount)
-						DDLAssert(struc.size.value() <= def.size.value());
+					{
+						DDLAssert(struc.structBitSize <= def.calculatedDefBitSize);
+						DDLAssert(struc.structBitSize == struc.calculatedStructBitSize);
+					}
 				}
 
-				DDLAssert(def.size.value() == def.structs[0].size.value());
+				DDLAssert((def.defBitSize - def.headerBitSize) == def.structs[0].structBitSize);
 			}
 #endif
 		}
@@ -313,7 +315,7 @@ namespace Assets
 
 #ifdef DDL_DEBUG_RELINK
 			assert(expression || !fatalOnRelink);
-			#elifdef DDL_DEBUG_ORIGNAL
+#elifdef DDL_DEBUG_ORIGNAL
 				if (!expression)
 				{
 					//if (!expressionString.contains("refCount"))
@@ -378,7 +380,7 @@ namespace Assets
 				jDDLDef.inCalculation[structIndex] = true;
 				// parentDef.m_member_stack.push_back(*this);
 				RecursivelyTraverseStruct(jDDLDef, jDDLDef.structs[structIndex]);
-				// parentDef.m_member_stack.pop_back();
+				// parentDef.m_member_stack.pop_back();1
 			}
 
 			jDDLDef.inCalculation.clear();
@@ -442,9 +444,9 @@ namespace Assets
 							//|| member.link.m_enum_index < def.enums.size() && member.arraySize.value_or(1) != 1);
 							//the above triggering implies a special extra usage of enums
 						}
-					}
 
-					struc.size.emplace(members.back().link.m_offset + members.back().link.m_bit_size);
+						struc.calculatedStructBitSize += member.link.m_bit_size;
+					}
 				}
 			}
 		}
@@ -528,24 +530,28 @@ namespace Assets
 			DDLAssert(ddlMemberDef.arraySize != 1 || (ddlMemberDef.bitSize % ddlMemberDef.arraySize) == 0);
 		}
 
-		static auto prevHash = 0;
-		static std::vector<bool> uniqueIndexes;
-		static std::set<std::string> uniqueMembers;
-
-		void CheckHashTable(const game::DDLHashTable& hashTable)
+		void CreateJsonDDlHashTable(DDLHashTable& jDDLHashTable, const game::DDLHashTable& hashTable)
 		{
-			/*
-			prevHash = hashTable.list;
-			uniqueIndexes[hashTable.index] = true;
-			uniqueMembers.insert(ddlStructDef.members.name);
+			DDLAssert(hashTable.max <= game::DDL::MAX_MEMBERS);
+			DDLAssert(hashTable.count <= hashTable.max);
 
-			DDLAssert(hashTable.hash);
-			DDLAssert(hashTable.index >= 0 && hashTable.index < ddlStructDef.memberCount);
+			jDDLHashTable.max = hashTable.max;
 
-			DDLAssert(prevHash == 0 || hashTable.hash > prevHash, false); // This is actually cursed
-			DDLAssert(!uniqueIndexes[hashTable.index]);
-			DDLAssert(!uniqueMembers.contains(ddlStructDef.members.name)); // HOW?!
-			*/
+			std::vector<bool> uniqueIndexes;
+			uniqueIndexes.resize(hashTable.count, false);
+			auto prevHash = 0;
+			for (auto i = 0; i < hashTable.count; i++)
+			{
+				DDLAssert(hashTable.list[i].hash);
+				DDLAssert(hashTable.list[i].index >= 0 && hashTable.list[i].index < hashTable.count);
+				DDLAssert(prevHash == 0 || hashTable.list[i].hash > prevHash, false);
+				DDLAssert(!uniqueIndexes[hashTable.list[i].index]);
+
+				prevHash = hashTable.list[i].hash;
+				uniqueIndexes[hashTable.list[i].index] = true;
+
+				jDDLHashTable.list.push_back(hashTable.list[i]);
+			}
 		}
 
 		void CreateJsonDDlStructList(JsonDDLStructDef& jDDLStructDef, const game::DDLStruct& ddlStructDef)
@@ -559,31 +565,36 @@ namespace Assets
 
 			jDDLStructDef.name = ddlStructDef.name;
 			jDDLStructDef.members.resize(ddlStructDef.memberCount);
-			jDDLStructDef.size.emplace(ddlStructDef.bitSize);
+			jDDLStructDef.structBitSize = ddlStructDef.bitSize;
 
-			prevHash = 0;
 			auto calculatedStructSize = 0;
 			auto prevOffset = 0;
-			uniqueIndexes.clear();
-			uniqueMembers.clear();
+			std::set<std::string> uniqueMembers;
+
+			DDLAssert(ddlStructDef.memberCount <= (ddlStructDef.hashTableLower.count + ddlStructDef.hashTableUpper.count));
+			CreateJsonDDlHashTable(jDDLStructDef.sortedLowerHashTable, ddlStructDef.hashTableLower);
+			CreateJsonDDlHashTable(jDDLStructDef.sortedUpperHashTable, ddlStructDef.hashTableUpper);
 
 			for (auto i = 0; i < ddlStructDef.memberCount; i++)
 			{
+				CreateJsonDDlMemberDef(jDDLStructDef.members[i], ddlStructDef.members[i]);
+
+				DDLAssert(!uniqueMembers.contains(ddlStructDef.members[i].name), false); // HOW?!
+
+				uniqueMembers.insert(ddlStructDef.members[i].name);
+
 				DDLAssert(ddlStructDef.members[i].offset <= ddlStructDef.bitSize);
-				DDLAssert(ddlStructDef.members[i].offset == 0 || ddlStructDef.members[i].offset > prevOffset);
-				DDLAssert(ddlStructDef.members[i].offset == calculatedStructSize);
+				DDLAssert(ddlStructDef.members[i].offset == 0 || ddlStructDef.members[i].offset > prevOffset, false);
+				DDLAssert(ddlStructDef.members[i].offset == calculatedStructSize, false);
 				DDLAssert(ddlStructDef.members[i].bitSize <= ddlStructDef.bitSize);
+
+				//DDLAssert(ddlStructDef.members[i].offset);
 
 				prevOffset = ddlStructDef.members[i].offset;
 				calculatedStructSize += ddlStructDef.members[i].bitSize;
-
-				jDDLStructDef.sortedLowerHashTable.push_back(ddlStructDef.hashTableLower);
-				jDDLStructDef.sortedUpperHashTable.push_back(ddlStructDef.hashTableUpper);
-				CreateJsonDDlMemberDef(jDDLStructDef.members[i], ddlStructDef.members[i]);
 			}
 
 			uniqueMembers.clear();
-			uniqueIndexes.clear();
 
 			DDLAssert(ddlStructDef.bitSize == calculatedStructSize);
 		}
@@ -594,6 +605,9 @@ namespace Assets
 			DDLAssert(ddlEnumDef.memberCount > 1 && ddlEnumDef.memberCount < game::DDL::MAX_MEMBERS);
 			DDLAssert(ddlEnumDef.members && ddlEnumDef.members[0]);
 			DDLAssert(ddlEnumDef.hashTable.list);
+			DDLAssert(ddlEnumDef.hashTable.max <= game::DDL::MAX_MEMBERS);
+			DDLAssert(ddlEnumDef.hashTable.count <= ddlEnumDef.hashTable.max);
+			DDLAssert(ddlEnumDef.memberCount == ddlEnumDef.hashTable.count);
 
 			jDDLEnumDef.name = ddlEnumDef.name;
 			jDDLEnumDef.members.resize(ddlEnumDef.memberCount);
@@ -606,6 +620,9 @@ namespace Assets
 
 			for (auto i = 0; i < ddlEnumDef.memberCount; i++)
 			{
+				jDDLEnumDef.sortedHashTable.list.push_back(ddlEnumDef.hashTable.list[i]);
+				jDDLEnumDef.members[i] = ddlEnumDef.members[i];
+
 				DDLAssert(ddlEnumDef.hashTable.list[i].hash);
 				DDLAssert(ddlEnumDef.hashTable.list[i].index >= 0 && ddlEnumDef.hashTable.list[i].index < ddlEnumDef.memberCount);
 
@@ -618,9 +635,6 @@ namespace Assets
 				uniqueMembers.insert(ddlEnumDef.members[i]);
 
 				DDLAssert(CheckName(ddlEnumDef.members[i]));
-
-				jDDLEnumDef.sortedHashTable.push_back(ddlEnumDef.hashTable);
-				jDDLEnumDef.members[i] = ddlEnumDef.members[i];
 			}
 		}
 
@@ -634,13 +648,28 @@ namespace Assets
 			DDLAssert(ddlDef->version > 0);
 			DDLAssert(prevDefVersion == 0 || prevDefVersion > ddlDef->version);
 			DDLAssert(ddlDef->bitSize > 0);
+			DDLAssert(ddlDef->byteSize == ((ddlDef->bitSize + (CHAR_BIT - 1)) / CHAR_BIT));
+			DDLAssert(ddlDef->checksum > 0);
+			DDLAssert(ddlDef->flags > 0);
+			DDLAssert(ddlDef->headerBitSize > 0);
+			DDLAssert(ddlDef->headerByteSize == ((ddlDef->headerBitSize + (CHAR_BIT - 1)) / CHAR_BIT));
+			DDLAssert(ddlDef->reserveSize == 0 /*&& !some flag || > 0*/);
+			DDLAssert(ddlDef->userFlagsSize == 0 /*&& !some flags || > 0*/);
 			DDLAssert(ddlDef->structCount > 0 && ddlDef->structCount < game::DDL::MAX_STRUCTS);
 			DDLAssert(ddlDef->enumCount >= 0 && ddlDef->enumCount < game::DDL::MAX_ENUMS);
 
 			prevDefVersion = ddlDef->version;
 
 			jsonDDLDef.version = ddlDef->version;
-			jsonDDLDef.bitSize.emplace(ddlDef->bitSize);
+			jsonDDLDef.defBitSize = ddlDef->bitSize;
+			jsonDDLDef.defByteSize = ddlDef->byteSize;
+			jsonDDLDef.checksum = ddlDef->checksum;
+			jsonDDLDef.flags = ddlDef->flags;
+			jsonDDLDef.headerBitSize = ddlDef->headerBitSize;
+			jsonDDLDef.headerByteSize = ddlDef->headerByteSize;
+			jsonDDLDef.paddingUsed = ddlDef->paddingUsed;
+			jsonDDLDef.reserveSize = ddlDef->reserveSize;
+			jsonDDLDef.userFlagsSize = ddlDef->userFlagsSize;
 
 			if (ddlDef->structCount > 0)
 			{

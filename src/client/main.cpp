@@ -22,17 +22,21 @@ namespace
 		ExitProcess(code);
 	}
 
-	BOOL set_process_dpi_aware_stub()
+	FARPROC WINAPI get_proc_address(const HMODULE hModule, const LPCSTR lpProcName)
 	{
-		component_loader::post_unpack();
-		return SetProcessDPIAware();
+		if (lpProcName == "RemoteLogger_Start"s)
+		{
+			component_loader::post_unpack();
+		}
+
+		return GetProcAddress(hModule, lpProcName);
 	}
 
 	void patch_imports()
 	{
 		const utils::nt::library game{};
 		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
-		//utils::hook::set(game.get_iat_entry("user32.dll", "SetProcessDPIAware"), set_process_dpi_aware_stub);
+		utils::hook::set(game.get_iat_entry("kernel32.dll", "GetProcAddress"), get_proc_address);
 	}
 
 	PIMAGE_TLS_CALLBACK* get_tls_callbacks()

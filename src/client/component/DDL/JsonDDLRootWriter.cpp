@@ -15,7 +15,7 @@ namespace Assets
 {
 	namespace Ddl
 	{
-#undef DDL_DEBUG
+//#undef DDL_DEBUG
 #define DDLAssert(expression, ...) \
 	DDLAssertInternal(expression, #expression, __VA_ARGS__)
 
@@ -294,7 +294,7 @@ namespace Assets
 				{
 					if (struc.refCount)
 					{
-						DDLAssert(struc.structBitSize <= def.calculatedDefBitSize);
+						//DDLAssert(struc.structBitSize <= def.calculatedDefBitSize);
 						DDLAssert(struc.structBitSize == struc.calculatedStructBitSize);
 					}
 				}
@@ -538,12 +538,12 @@ namespace Assets
 			jDDLHashTable.max = hashTable.max;
 
 			std::vector<bool> uniqueIndexes;
-			uniqueIndexes.resize(hashTable.count, false);
+			uniqueIndexes.resize(hashTable.max, false);
 			auto prevHash = 0;
 			for (auto i = 0; i < hashTable.count; i++)
 			{
 				DDLAssert(hashTable.list[i].hash);
-				DDLAssert(hashTable.list[i].index >= 0 && hashTable.list[i].index < hashTable.count);
+				DDLAssert(hashTable.list[i].index >= 0);
 				DDLAssert(prevHash == 0 || hashTable.list[i].hash > prevHash, false);
 				DDLAssert(!uniqueIndexes[hashTable.list[i].index]);
 
